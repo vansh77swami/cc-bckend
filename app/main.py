@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, File, Form, UploadFile, Header, HTTPExcept
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.security import APIKeyHeader
 import aiofiles
 import os
@@ -14,6 +14,7 @@ from app.db.database import Database
 from app.core.config import get_settings
 import logging
 from typing import Optional
+from pathlib import Path
 
 # Setup logging
 logging.basicConfig(
@@ -53,7 +54,6 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
     return api_key
 
 # Setup static files and templates
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 templates = Jinja2Templates(directory="app/templates")
 
 # Initialize database
@@ -71,7 +71,10 @@ async def startup_event():
         raise
 
 @app.get("/")
-async def root(request: Request):
+async def root(
+    request: Request,
+    api_key: str = Depends(verify_api_key)
+):
     """Render the main page with all submissions."""
     try:
         submissions = await db.get_all_submissions()
@@ -80,7 +83,8 @@ async def root(request: Request):
             {
                 "request": request,
                 "submissions": submissions,
-                "upload_dir": "uploads"
+                "upload_dir": "uploads",
+                "api_key": api_key
             }
         )
     except Exception as e:
@@ -187,4 +191,16 @@ async def delete_submission(
         raise
     except Exception as e:
         logger.error(f"Error in delete_submission: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error") 
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# Add protected file serving endpoint
+@app.get("/uploads/{file_path:path}")
+async def serve_file(
+    file_path: str,
+    api_key: str = Depends(verify_api_key)
+):
+    """Serve files from uploads directory with authentication."""
+    file_location = Path("uploads") / file_path
+    if not file_location.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_location) 
