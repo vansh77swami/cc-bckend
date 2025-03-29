@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Submissions Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Auto-refresh the page every 30 seconds
+        setTimeout(() => window.location.reload(), 30000);
+
+        // Delete confirmation and handling
+        async function deleteSubmission(submissionId) {
+            if (!confirm('Are you sure you want to delete this submission?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/submissions/${submissionId}`, {
+                    method: 'DELETE',
+                });
+                
+                if (response.ok) {
+                    // Reload the page to show updated list
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete submission');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to delete submission');
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">Image Submissions Dashboard</h1>
+        
+        <!-- Submissions Grid -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for submission in submissions %}
+                <div class="border rounded-lg p-4 shadow hover:shadow-lg transition-shadow relative">
+                    <!-- Delete button -->
+                    <button onclick="deleteSubmission('{{ submission.id }}')"
+                            class="absolute top-2 right-2 bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 focus:outline-none"
+                            title="Delete submission">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    
+                    <div class="aspect-w-16 aspect-h-9 mb-4">
+                        <img src="/uploads/{{ submission.original_image_path | replace(upload_dir ~ '/', '') }}" 
+                             alt="Submitted image" 
+                             class="w-full h-64 object-cover rounded-lg">
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-gray-600">
+                            <span class="font-semibold">Email:</span> 
+                            <span class="font-mono">{{ submission.email }}</span>
+                        </p>
+                        <p class="text-gray-600">
+                            <span class="font-semibold">Status:</span>
+                            <span class="inline-block px-2 py-1 rounded-full text-sm
+                                {% if submission.status == 'pending' %}
+                                    bg-yellow-100 text-yellow-800
+                                {% elif submission.status == 'completed' %}
+                                    bg-green-100 text-green-800
+                                {% else %}
+                                    bg-gray-100 text-gray-800
+                                {% endif %}">
+                                {{ submission.status }}
+                            </span>
+                        </p>
+                        <p class="text-gray-600">
+                            <span class="font-semibold">Submitted:</span>
+                            <span class="text-sm">{{ submission.created_at }}</span>
+                        </p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-span-full text-center py-12">
+                    <p class="text-gray-500 text-lg">No submissions yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
