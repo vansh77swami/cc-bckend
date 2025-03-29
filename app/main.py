@@ -36,7 +36,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://creative-clone-journey-9zkxj8nqp-vs465958gmailcoms-projects.vercel.app"],
+    allow_origins=["https://creative-clone-journey-9zkxj8nqp-vs465958gmailcoms-projects.vercel.app/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
