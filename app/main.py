@@ -1,11 +1,11 @@
 # https://creative-clone-journey-9zkxj8nqp-vs465958gmailcoms-projects.vercel.app/, jing@grows.live
 
-from fastapi import FastAPI, Request, File, Form, UploadFile, Header, HTTPException, Depends
+from fastapi import FastAPI, Request, File, Form, UploadFile, Header, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse, FileResponse
-from fastapi.security import APIKeyHeader
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
+from fastapi.security import APIKeyHeader, HTTPBasic, HTTPBasicCredentials
 import aiofiles
 import os
 import uuid
@@ -15,6 +15,7 @@ from app.core.config import get_settings
 import logging
 from typing import Optional
 from pathlib import Path
+import secrets
 
 # Setup logging
 logging.basicConfig(
@@ -48,6 +49,22 @@ templates = Jinja2Templates(directory="app/templates")
 # Initialize database
 db = Database("data/image_processing.db")
 
+# Initialize security
+security = HTTPBasic()
+
+# Add authentication function
+async def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, settings.ADMIN_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, settings.ADMIN_PASSWORD)
+    
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup."""
@@ -60,8 +77,11 @@ async def startup_event():
         raise
 
 @app.get("/")
-async def root(request: Request):
-    """Render the main page with all submissions."""
+async def root(
+    request: Request,
+    credentials: HTTPBasicCredentials = Depends(verify_admin)
+):
+    """Render the main page with all submissions (protected by auth)."""
     try:
         submissions = await db.get_all_submissions()
         return templates.TemplateResponse(
@@ -69,7 +89,8 @@ async def root(request: Request):
             {
                 "request": request,
                 "submissions": submissions,
-                "upload_dir": "uploads"
+                "upload_dir": "uploads",
+                "username": credentials.username
             }
         )
     except Exception as e:
@@ -171,10 +192,13 @@ async def delete_submission(submission_id: str):
         logger.error(f"Error in delete_submission: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-# Add protected file serving endpoint
+# Update the file serving endpoint to require API key
 @app.get("/uploads/{file_path:path}")
-async def serve_file(file_path: str):
-    """Serve files from uploads directory."""
+async def serve_file(
+    file_path: str,
+    credentials: HTTPBasicCredentials = Depends(verify_admin)
+):
+    """Serve files from uploads directory (protected by auth)."""
     file_location = Path("uploads") / file_path
     if not file_location.is_file():
         raise HTTPException(status_code=404, detail="File not found")

@@ -32,6 +32,11 @@
                 alert('Failed to delete submission');
             }
         }
+
+        // Add function to get image URL with API key
+        function getImageUrl(imagePath) {
+            return `/uploads/${imagePath}`;
+        }
     </script>
 </head>
 <body class="bg-gray-100">
@@ -40,7 +45,8 @@
         
         <!-- Add authentication notice -->
         <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
-            <p>Authenticated view. Do not share this URL.</p>
+            <p>Welcome, {{ username }}! You are viewing the admin dashboard.</p>
+            <p class="text-sm">This is a protected view. Do not share access credentials.</p>
         </div>
 
         <!-- Submissions Grid -->
@@ -58,7 +64,7 @@
                     </button>
                     
                     <div class="aspect-w-16 aspect-h-9 mb-4">
-                        <img src="/uploads/{{ submission.original_image_path | replace(upload_dir ~ '/', '') }}" 
+                        <img src="/uploads/{{ submission.original_image_path | replace(upload_dir ~ '/', '') }}"
                              alt="Submitted image" 
                              class="w-full h-64 object-cover rounded-lg">
                     </div>

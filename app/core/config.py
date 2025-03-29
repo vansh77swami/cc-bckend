@@ -24,7 +24,11 @@ class Settings(BaseSettings):
     # File uploads
     UPLOAD_DIR: str = "uploads"
     MAX_IMAGE_SIZE: int = 10 * 1024 * 1024  # 10MB
-    ALLOWED_IMAGE_TYPES: set = {"image/jpeg", "image/png", "image/gif"}
+    ALLOWED_IMAGE_TYPES: set = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    
+    # Admin Authentication
+    ADMIN_USERNAME: str = "admin"  # Change in production
+    ADMIN_PASSWORD: str = "admin"  # Change in production
     
     class Config:
         env_file = ".env"
