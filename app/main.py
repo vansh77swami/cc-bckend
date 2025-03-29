@@ -36,22 +36,11 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://creative-clone-journey-9zkxj8nqp-vs465958gmailcoms-projects.vercel.app/"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Setup API key security
-api_key_header = APIKeyHeader(name="X-API-Key")
-
-async def verify_api_key(api_key: str = Depends(api_key_header)):
-    if api_key != settings.API_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail="Could not validate API key"
-        )
-    return api_key
 
 # Setup static files and templates
 templates = Jinja2Templates(directory="app/templates")
@@ -71,10 +60,7 @@ async def startup_event():
         raise
 
 @app.get("/")
-async def root(
-    request: Request,
-    api_key: str = Depends(verify_api_key)
-):
+async def root(request: Request):
     """Render the main page with all submissions."""
     try:
         submissions = await db.get_all_submissions()
@@ -83,8 +69,7 @@ async def root(
             {
                 "request": request,
                 "submissions": submissions,
-                "upload_dir": "uploads",
-                "api_key": api_key
+                "upload_dir": "uploads"
             }
         )
     except Exception as e:
@@ -94,8 +79,7 @@ async def root(
 @app.post("/api/submit-image")
 async def submit_image(
     email: str = Form(...),
-    image: UploadFile = File(...),
-    api_key: str = Depends(verify_api_key)
+    image: UploadFile = File(...)
 ):
     """Handle image submission."""
     try:
@@ -148,10 +132,7 @@ async def submit_image(
         )
 
 @app.get("/api/status/{submission_id}")
-async def get_status(
-    submission_id: str,
-    api_key: str = Depends(verify_api_key)
-):
+async def get_status(submission_id: str):
     """Get the status of a submission."""
     try:
         submission = await db.get_submission(submission_id)
@@ -173,10 +154,7 @@ async def get_status(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.delete("/api/submissions/{submission_id}")
-async def delete_submission(
-    submission_id: str,
-    api_key: str = Depends(verify_api_key)
-):
+async def delete_submission(submission_id: str):
     """Delete a submission and its associated image."""
     try:
         success = await db.delete_submission(submission_id)
@@ -195,11 +173,8 @@ async def delete_submission(
 
 # Add protected file serving endpoint
 @app.get("/uploads/{file_path:path}")
-async def serve_file(
-    file_path: str,
-    api_key: str = Depends(verify_api_key)
-):
-    """Serve files from uploads directory with authentication."""
+async def serve_file(file_path: str):
+    """Serve files from uploads directory."""
     file_location = Path("uploads") / file_path
     if not file_location.is_file():
         raise HTTPException(status_code=404, detail="File not found")

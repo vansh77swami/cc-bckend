@@ -6,15 +6,12 @@
     <title>Image Submissions Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Store API key for requests
-        const API_KEY = '{{ api_key }}';
-
-        // Auto-refresh with API key
+        // Auto-refresh without API key
         setTimeout(() => {
-            window.location.href = '/?api_key=' + API_KEY;
+            window.location.reload();
         }, 30000);
 
-        // Delete confirmation and handling with API key
+        // Delete confirmation and handling without API key
         async function deleteSubmission(submissionId) {
             if (!confirm('Are you sure you want to delete this submission?')) {
                 return;
@@ -22,10 +19,7 @@
             
             try {
                 const response = await fetch(`/api/submissions/${submissionId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-API-Key': API_KEY
-                    }
+                    method: 'DELETE'
                 });
                 
                 if (response.ok) {
